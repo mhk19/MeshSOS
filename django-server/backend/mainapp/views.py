@@ -11,6 +11,7 @@ from .serializers import rlogSerializer
 
 from datetime import datetime
 import pytz
+import requests
 
 
 class rloglist(APIView):
@@ -59,9 +60,13 @@ class rloglist(APIView):
         """
 
         # dictionary of recieved data body
-        req_data = request.data
-
-        print("Request Data:\n:", req_data)
+        req_data = request.data['uplink_message']['decoded_payload']
+        api_key = request.headers['X-Downlink-Apikey']
+        app_id = request.data['end_device_ids']['application_ids']['application_id']
+        dev_id = request.data['end_device_ids']['device_id']
+        
+        url = 'https://eu1.cloud.thethings.network/api/v3/as/applications/' + app_id + '/webhooks/test/devices/' + dev_id + '/down/push'
+        headers = {'Authorization' : 'Bearer ' + api_key, 'Content-Type': 'application/json', 'User-Agent': 'mesh-sos/v1'}
 
         # update timestamp to use indian time (UTC -> Asia/Kolkata)
         utc_datetime = datetime.strptime(req_data["timestamp"], "%Y-%m-%dT%H:%M:%S.%fZ")
@@ -121,7 +126,7 @@ class rloglist(APIView):
                 saved_obj = serializer.save()
             else :
                 print("Not Saving Log")
-
+        requests.post(url, headers=headers, json={"downlinks": [{"decoded_payload":{"received": 'true'}, "f_port":1}]})
         return Response(return_val,)
 
 def isDifLessThanFiveMinutes(later, before):
