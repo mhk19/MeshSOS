@@ -1,7 +1,9 @@
+from pickle import TRUE
 from django.shortcuts import render
 
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
+from backend.settings import TTN_APP_ID, TTN_DOWNLINK_API_KEY, TTN_WEBHOOK_ID
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status as rf_status
@@ -13,6 +15,21 @@ from datetime import datetime
 import pytz
 import requests
 
+
+class SendDownlinkMsg(APIView):
+    def post(self, request):
+        msg = request.data['msg']
+        request_id = request.data['request_id']
+        print(msg, request_id)
+        if request_id:
+            log = request_logs.objects.get(id=request_id)
+            print(log.core_id)
+            dev_id = log.core_id
+            url = 'https://eu1.cloud.thethings.network/api/v3/as/applications/' + TTN_APP_ID + '/webhooks/'+ TTN_WEBHOOK_ID +'/devices/' + dev_id + '/down/push'
+            headers = {'Authorization' : 'Bearer ' + TTN_DOWNLINK_API_KEY, 'Content-Type': 'application/json', 'User-Agent': 'mesh-sos/v1'}
+            requests.post(url, headers=headers, json={"downlinks": [{"decoded_payload":{"message": msg}, "f_port":1}]})
+        return Response(TRUE)
+        
 
 class rloglist(APIView):
     def get(self, request):
@@ -61,12 +78,10 @@ class rloglist(APIView):
 
         # dictionary of recieved data body
         req_data = request.data['uplink_message']['decoded_payload']
-        api_key = request.headers['X-Downlink-Apikey']
-        app_id = request.data['end_device_ids']['application_ids']['application_id']
         dev_id = request.data['end_device_ids']['device_id']
         
-        url = 'https://eu1.cloud.thethings.network/api/v3/as/applications/' + app_id + '/webhooks/test/devices/' + dev_id + '/down/push'
-        headers = {'Authorization' : 'Bearer ' + api_key, 'Content-Type': 'application/json', 'User-Agent': 'mesh-sos/v1'}
+        url = 'https://eu1.cloud.thethings.network/api/v3/as/applications/' + TTN_APP_ID + '/webhooks/'+ TTN_WEBHOOK_ID +'/devices/' + dev_id + '/down/push'
+        headers = {'Authorization' : 'Bearer ' + TTN_DOWNLINK_API_KEY, 'Content-Type': 'application/json', 'User-Agent': 'mesh-sos/v1'}
 
         # update timestamp to use indian time (UTC -> Asia/Kolkata)
         utc_datetime = datetime.strptime(req_data["timestamp"], "%Y-%m-%dT%H:%M:%S.%fZ")
@@ -75,14 +90,7 @@ class rloglist(APIView):
         db_datetime_format = "%Y-%m-%d %H:%M:%S"
 
         req_data['timestamp']=utc_datetime.strftime(db_datetime_format)
-
-        # divide emergency string in emergency_type, core_id
-        emergency = req_data["emergency"]
-        emergency_type, core_id = emergency.split("-")
-
-        del req_data["emergency"]
-        req_data["emergency_type"] = emergency_type
-        req_data["core_id"] = core_id
+        req_data["core_id"] = dev_id
 
         # serialize data to save in db
         print("Parsed data:\n", req_data)
@@ -98,9 +106,9 @@ class rloglist(APIView):
             or req_data["accuracy"] == "-1"
         ):
             should_save_logs &= False
-            return_val = emergency + "/0"
+            return_val = "/0"
         else:
-            return_val = emergency + "/1"
+            return_val = "/1"
 
         # checking for validity of data
         if serializer.is_valid(raise_exception=True):
@@ -126,7 +134,7 @@ class rloglist(APIView):
                 saved_obj = serializer.save()
             else :
                 print("Not Saving Log")
-        requests.post(url, headers=headers, json={"downlinks": [{"decoded_payload":{"received": 'true'}, "f_port":1}]})
+        # requests.post(url, headers=headers, json={"downlinks": [{"decoded_payload":{"received": 'true'}, "f_port":1}]})
         return Response(return_val,)
 
 def isDifLessThanFiveMinutes(later, before):

@@ -22,4 +22,5 @@ from mainapp import views
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('rlogs/', views.rloglist.as_view()),
+    path('sendmsg/', views.SendDownlinkMsg.as_view()),
 ]
