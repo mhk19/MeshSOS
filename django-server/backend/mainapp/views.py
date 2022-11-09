@@ -1,22 +1,65 @@
 from pickle import TRUE
-from django.shortcuts import render
-
-from django.http import HttpResponse
-from django.shortcuts import get_object_or_404
-from backend.settings import TTN_APP_ID, TTN_DOWNLINK_API_KEY, TTN_WEBHOOK_ID
+from backend.settings import SECRET_KEY, TTN_APP_ID, TTN_DOWNLINK_API_KEY, TTN_WEBHOOK_ID
+from mainapp.decorator import check_user
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status as rf_status
 
-from .models import request_logs
-from .serializers import rlogSerializer
+from .models import request_logs, UserProfile
+from .serializers import UserProfileSerializer, rlogSerializer
 
 from datetime import datetime
 import pytz
 import requests
+import jwt
 
+def getUserFromJWT(token):
+    try:
+        decoded_jwt = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        user = UserProfile.objects.get(name=decoded_jwt["username"])
+        return UserProfileSerializer(user).data
+    except Exception as error:
+        print("Error occurred while parsing user token", error)
+        return None
+
+
+class Register(APIView):
+    def post(self, request):
+        userProfile = UserProfile(name=request.data['name'], password=request.data['password'], email=request.data['email'], service=request.data['service'], location=request.data['location'], phone=request.data['phone'])
+        userProfile.save()
+        user = UserProfileSerializer(userProfile).data
+        token = jwt.encode({"username": userProfile.name, "email": userProfile.email}, SECRET_KEY, algorithm="HS256")
+        return Response({"token": token, "user": user})
+
+class Login(APIView):
+    def get(self, request):
+        user = UserProfile.objects.get(name=request.GET.get('username'), password=request.GET.get('password'))
+        if user is not None:
+            token = jwt.encode({"username": user.name, "email": user.email}, SECRET_KEY, algorithm="HS256")
+            userData = UserProfileSerializer(user).data
+            return Response({"token": token, "user": userData})
+        else:
+            return Response(rf_status.HTTP_404_NOT_FOUND)
+        
+class User(APIView):
+    @check_user
+    def get(self, request):
+        token = request.headers["Authorization"].split(" ")[1]
+        user = getUserFromJWT(token)
+        return Response(user)
+    
+    @check_user
+    def post(self, request):
+        userProfile = UserProfile.objects.get(name=request.data['username'])
+        userProfile.service = request.data['service']
+        userProfile.phone = request.data['phone']
+        userProfile.location = request.data['location']
+        userProfile.save()
+        return Response(UserProfileSerializer(userProfile).data)
+        
 
 class SendDownlinkMsg(APIView):
+    @check_user
     def post(self, request):
         msg = request.data['msg']
         request_id = request.data['request_id']
@@ -32,6 +75,7 @@ class SendDownlinkMsg(APIView):
         
 
 class rloglist(APIView):
+    @check_user
     def get(self, request):
         status = request.GET.get('status')
         emergency_type = request.GET.get('emergency_type')
