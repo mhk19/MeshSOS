@@ -128,8 +128,8 @@ class rloglist(APIView):
         headers = {'Authorization' : 'Bearer ' + TTN_DOWNLINK_API_KEY, 'Content-Type': 'application/json', 'User-Agent': 'mesh-sos/v1'}
 
         # update timestamp to use indian time (UTC -> Asia/Kolkata)
-        utc_datetime = datetime.strptime(req_data["timestamp"], "%Y-%m-%dT%H:%M:%S.%fZ")
-        utc_datetime = utc_datetime.replace(tzinfo=pytz.utc)
+        utc_datetime = datetime.strptime(req_data["timestamp"], "%Y-%m-%d %H:%M:%S")
+        utc_datetime = utc_datetime.replace(tzinfo=pytz.utc).astimezone(pytz.timezone('Asia/Kolkata'))
 
         db_datetime_format = "%Y-%m-%d %H:%M:%S"
 

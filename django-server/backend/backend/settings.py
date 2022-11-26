@@ -25,7 +25,7 @@ SECRET_KEY = '&tuq2hq_z)#5d%3w$lb^ak_=5-83m2^1ngn(aqh_=lee=j%%83'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '*']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '*', 'ayary.me']
 
 # Application definition
 
@@ -57,7 +57,12 @@ ROOT_URLCONF = 'backend.urls'
 
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:3001',
+    'http://dashboard.meshsos.ayary.me',
 ]
+
+CORS_ORIGIN_WHITELIST = (
+    'http://dashboard.meshsos.ayary.me',
+)
 
 
 TEMPLATES = [
