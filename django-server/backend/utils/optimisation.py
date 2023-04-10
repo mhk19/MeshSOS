@@ -2,6 +2,8 @@ from create_zones import getZoneLocations, ZONE_LOC, AMB_LOC
 from tabu_search import tabuSearch
 from distance import euclidean
 from scipy.optimize import linear_sum_assignment
+from sklearn_extra.cluster import KMedoids
+import numpy as np
 
 # emergencyLocations -> list of tuples of form (latitude, longitude), numVehicles -> number of available vehicles
 def getVehicleLocations(emergencyLocations, numVehicles):
@@ -35,3 +37,15 @@ def getRoute(initialPositions, finalPositions, maxTravel = 5):
             return matches, maxTravel
         else:
             maxTravel += 1
+    
+
+def getVehicleLocation_kMedoids(emergencyLocations, numVehicles):
+    latitudes = [emergencyLocations[i][0] for i in range(len(emergencyLocations))]
+    longitudes = [emergencyLocations[i][1] for i in range(len(emergencyLocations))]
+    
+    dat = [[latitudes[i], longitudes[i]] for i in range(len(latitudes))]
+    dat = np.asarray(dat)
+
+    centers = KMedoids(n_clusters = numVehicles, method = 'pam').fit(dat).cluster_centers_
+
+    return [(centers[i][0], centers[i][1]) for i in range(len(centers))]

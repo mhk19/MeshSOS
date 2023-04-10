@@ -16,7 +16,11 @@ The main script is **optimisation.py**. It contains the following functions:
 - *maxTravel:* Maximum distance that a vehicle may travel between the two locations
 
     Returns two values:
-    - *movements: * List of tuple of tuples in the format *((initialLatitude, initialLongitude), (finalLatitude, finalLongitude))*
-    - *maxTravelActual: * Maximum of *maxTravel* and the actual maximum distance travelled.
+    - *movements:* List of tuple of tuples in the format *((initialLatitude, initialLongitude), (finalLatitude, finalLongitude))*
+    - *maxTravelActual:* Maximum of *maxTravel* and the actual maximum distance travelled.
 
-**Note:** getRoutes tries to achieve *maxTravel* but it does not guarantee. It increases *maxTravel* by 1 till it becomes possible and returns the final value as *maxTravelActual*. 
+**Note:** getRoutes tries to achieve *maxTravel* but it does not guarantee. It increases *maxTravel* by 1 till it becomes possible and returns the final value as *maxTravelActual*.
+
+3. ***getVehicleLocation_kMedoids(emergencyLocations, numVehicles)***
+
+- Same as *getVehicleLocation(emergencyLocations, numVehicles)*, uses K-medoids instead of Tabu Search to generate answers.
