@@ -125,7 +125,7 @@ class rloglist(APIView):
 
         # dictionary of recieved data body
         req_data = request.data['uplink_message']['decoded_payload']
-        dev_id = request.data['end_device_ids']['device_id']
+        dev_id = req_data['device_id']
         
         url = 'https://eu1.cloud.thethings.network/api/v3/as/applications/' + TTN_APP_ID + '/webhooks/'+ TTN_WEBHOOK_ID +'/devices/' + dev_id + '/down/push'
         headers = {'Authorization' : 'Bearer ' + TTN_DOWNLINK_API_KEY, 'Content-Type': 'application/json', 'User-Agent': 'mesh-sos/v1'}
