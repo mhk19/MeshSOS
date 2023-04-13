@@ -1,3 +1,4 @@
+import ast
 from pickle import TRUE
 from backend.settings import SECRET_KEY, TTN_APP_ID, TTN_DOWNLINK_API_KEY, TTN_WEBHOOK_ID
 from mainapp.decorator import check_user
@@ -7,11 +8,13 @@ from rest_framework import status as rf_status
 
 from .models import request_logs, UserProfile
 from .serializers import UserProfileSerializer, rlogSerializer
+from mainapp.utils.optimisation import getVehicleLocations
 
 from datetime import datetime
 import pytz
 import requests
 import jwt
+import geopy
 
 def getUserFromJWT(token):
     try:
@@ -135,11 +138,7 @@ class rloglist(APIView):
 
         req_data['timestamp']=utc_datetime.strftime(db_datetime_format)
         req_data["core_id"] = dev_id
-
-        # serialize data to save in db
-        print("Parsed data:\n", req_data)
-        serializer = rlogSerializer(data=req_data)
-
+        
         # should the log in POST be saved or not (this is only default value, manipulated in code below)
         should_save_logs = True
 
@@ -153,6 +152,20 @@ class rloglist(APIView):
             return_val = "/0"
         else:
             return_val = "/1"
+        
+        # fetch pincode from lat and lng
+        geolocator=geopy.Nominatim(user_agent='meshsos')
+        location=geolocator.reverse((req_data["latitude"], req_data["longitude"]))
+        
+        if not location:
+            should_save_logs &= False
+            return_val = "/0"
+        else:
+            req_data['pincode']=location.raw['address']['postcode']
+
+        # serialize data to save in db
+        print("Parsed data:\n", req_data)
+        serializer = rlogSerializer(data=req_data)
 
         # checking for validity of data
         if serializer.is_valid(raise_exception=True):
@@ -180,6 +193,38 @@ class rloglist(APIView):
                 print("Not Saving Log")
         # requests.post(url, headers=headers, json={"downlinks": [{"decoded_payload":{"received": 'true'}, "f_port":1}]})
         return Response(return_val,)
+    
+class EmergencyVehicleLocation(APIView):
+    def get(self, request):
+        logs = request_logs.objects.all()
+        for log in logs:
+            # fetch pincode from lat and lng
+            geolocator=geopy.Nominatim(user_agent='meshsos')
+            location=geolocator.reverse((log.latitude, log.longitude))
+            log.pincode = location.raw['address']['postcode']
+            print(log.pincode)
+            log.save()
+        return Response(1)
+            
+        
+        
+    def post(self, request):
+        noOfVehicles = int(request.data['quantity'])
+        print(request.data["pincodes"])
+        pincodes = ast.literal_eval(request.data['pincodes'])
+        typeOfVehicle = request.data['vehicleType']
+        
+        listOfLatAndLng = list()
+
+        for pincode in pincodes:
+            logs = request_logs.objects.filter(pincode=pincode, emergency_type=typeOfVehicle)
+            
+            for log in logs:
+                listOfLatAndLng.append((log.latitude, log.longitude))
+        if not listOfLatAndLng:
+            return Response()
+            
+        return Response(getVehicleLocations(listOfLatAndLng, noOfVehicles))
 
 def isDifLessThanFiveMinutes(later, before):
     diff = later - before

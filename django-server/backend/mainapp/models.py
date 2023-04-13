@@ -8,7 +8,7 @@ class request_logs(models.Model):
     # string of format "%Y-%m-%d %H:%M:%S" eg. "2020-04-01 20:01:14", FORMAT = UTC
     timestamp=models.CharField(max_length=19, default='-')
     
-    # emergency_type contains string one of 'medical' & 'police'
+    # emergency_type contains string one of 'health' & 'police'
     emergency_type=models.CharField(max_length=7, default='-')
 
     # core_id: id of sending device
@@ -17,6 +17,9 @@ class request_logs(models.Model):
     # latitude and longitude
     latitude = models.FloatField(default=-1.0)
     longitude = models.FloatField(default=-1.0)
+    
+    # pincode
+    pincode = models.CharField(max_length=10, default="-")
 
     # accuracy
     accuracy = models.FloatField()
