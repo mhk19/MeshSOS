@@ -21,6 +21,13 @@ def getVehicleRoutes(locationAndTimeData, numVehicles):
 
     ambulanceLocationLists = [getVehicleLocations(emergencyLocationLists[i], numVehicles) for i in range(4)]
 
+    for i, _list in enumerate(ambulanceLocationLists):
+        if len(_list) == 0:
+            for j, _list2 in enumerate(ambulanceLocationLists):
+                if len(_list2) != 0:
+                    ambulanceLocationLists[i] = ambulanceLocationLists[j]
+                    break
+            
     ambulanceRoutes = [[ambulanceLocationLists[0][i]] for i in range(numVehicles)]
 
     for i in range(1, 4):
@@ -35,6 +42,18 @@ def getVehicleRoutes(locationAndTimeData, numVehicles):
 
 # emergencyLocations -> list of tuples of form (latitude, longitude), numVehicles -> number of available vehicles
 def getVehicleLocations(emergencyLocations, numVehicles):
+    if len(emergencyLocations) == 0:
+        return []
+
+    if numVehicles >= len(emergencyLocations):
+        chosenLocations = []
+        while len(chosenLocations) < numVehicles:
+            for loc in emergencyLocations:
+                chosenLocations.append(loc)
+                if len(chosenLocations) == numVehicles:
+                    break
+        return chosenLocations
+                
     ambulanceLocs, zoneCenterLocs, count = getZoneLocations(emergencyLocations)
     chosenLocations = tabuSearch(ambulanceLocs, zoneCenterLocs, count, numVehicles)
     return chosenLocations
@@ -65,3 +84,8 @@ def getRoute(initialPositions, finalPositions, maxTravel = 5):
             return matches, maxTravel
         else:
             maxTravel += 1
+
+# Test
+locs = [(21.1111, 22.2222, "2023-04-24 11:23:08")]
+
+print(getVehicleRoutes(locs, 2))
