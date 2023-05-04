@@ -8,7 +8,7 @@ from rest_framework import status as rf_status
 
 from .models import request_logs, UserProfile
 from .serializers import UserProfileSerializer, rlogSerializer
-from mainapp.utils.optimisation import getVehicleLocations
+from mainapp.utils.optimisation import getVehicleLocations, getVehicleRoutes
 
 from datetime import datetime
 import pytz
@@ -156,6 +156,7 @@ class rloglist(APIView):
         # fetch pincode from lat and lng
         geolocator=geopy.Nominatim(user_agent='meshsos')
         location=geolocator.reverse((req_data["latitude"], req_data["longitude"]))
+        print(location)
         
         if not location:
             should_save_logs &= False
@@ -220,11 +221,11 @@ class EmergencyVehicleLocation(APIView):
             logs = request_logs.objects.filter(pincode=pincode, emergency_type=typeOfVehicle)
             
             for log in logs:
-                listOfLatAndLng.append((log.latitude, log.longitude))
+                listOfLatAndLng.append((log.latitude, log.longitude, log.timestamp))
         if not listOfLatAndLng:
             return Response()
             
-        return Response(getVehicleLocations(listOfLatAndLng, noOfVehicles))
+        return Response(getVehicleRoutes(listOfLatAndLng, noOfVehicles))
 
 def isDifLessThanFiveMinutes(later, before):
     diff = later - before
